@@ -8,13 +8,10 @@ from PIL import Image
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import QLabel, QSizePolicy
 from qt_thread_updater import get_updater
-from src.lwcc import LWCC
+import torch
+from models import vgg19
+from torchvision import transforms
 from src import config as co
-
-model = LWCC.load_model(model_name = "DM-Count", model_weights = "SHA")
-
-# path_image = '/Users/admin/Downloads/workspaces/freelance/App_GUI/Dataset_test/images/img2.jpg'
-# count, density = LWCC.get_count(path_image, model_name="Bay", model_weights="SHB", return_density=True)
 
 class Main:
     def __init__(self, MainGUI):
@@ -22,7 +19,34 @@ class Main:
         self.camera = None
         self.ret = False
         self.start_camera = True
-        
+        self.Label_Counting =[]
+        self.device = torch.device('cpu')
+        model_path = 'weights/model_couting.pth'
+        self.model = vgg19()
+        self.model.to(self.device)
+        self.model.load_state_dict(torch.load(model_path, self.device, weights_only=True))
+        self.model.eval()
+        self.fps = 25
+        self.density_map = None
+        self.person_count = 0
+        print('Load model done')
+
+    
+    def predict(self, image, model):
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        pil_image = Image.fromarray(rgb_image)
+        inp = transforms.ToTensor()(pil_image).unsqueeze(0)
+        inp = inp.to(self.device)
+        with torch.set_grad_enabled(False):
+            outputs, _ = model(inp)
+        count = torch.sum(outputs).item()
+        vis_img = outputs[0, 0].cpu().numpy()
+        vis_img = (vis_img - vis_img.min()) / (vis_img.max() - vis_img.min() + 1e-5)
+        vis_img = (vis_img * 255).astype(np.uint8)
+        vis_img = cv2.applyColorMap(vis_img, cv2.COLORMAP_JET)
+        vis_img = cv2.cvtColor(vis_img, cv2.COLOR_BGR2RGB)
+        return vis_img, int(count)
+
     def img_cv_2_qt(self, img_cv):
         height, width, channel = img_cv.shape
         bytes_per_line = channel * width
@@ -36,20 +60,39 @@ class Main:
             self.start_camera = False
             self.MainGUI.MessageBox_signal.emit("Có lỗi xảy ra ! \n Không tìm thấy camera/video", "error")
         else:
+            self.fps = self.camera.get(cv2.CAP_PROP_FPS)
             self.start_camera = True
-        
+            
+    def load_config(self, path_file):
+        file_extension = os.path.splitext(path_file)[0]
+        path_config = os.path.splitext(file_extension)[0] +'.json'
+        if os.path.exists(path_config):
+            with open(path_config, encoding="utf-8") as f:
+                data = json.load(f)
+                drawList_box = data['drawList']
+                for data in drawList_box:
+                    bbox = [data['xy']['x'],  data['xy']['y'], data['xy']['x'] +data['xy']['width'], data['xy']['y']+ data['xy']['height']]
+                    self.Label_Counting.append(bbox)
+
     def auto_camera(self):
         url_camera = co.CAMERA_DEVICE
         self.init_devices(url_camera)
+        cnt =0
         while self.ret and self.start_camera:
             try:
                 ret, frame = self.camera.read()
+                
                 self.ret = ret
                 if self.ret and self.start_camera:
+                    if cnt ==0 or cnt % 2*self.fps ==0:
+                        self.density_map, self.person_count = self.predict(frame, self.model)
+                    else:
+                        time.sleep(float(1/self.fps))
+                    cnt +=1
                     get_updater().call_latest(self.MainGUI.label_Image.setPixmap, self.img_cv_2_qt(frame))
-                    get_updater().call_latest(self.MainGUI.text_resutl.setText, "Run")
+                    get_updater().call_latest(self.MainGUI.text_resutl.setText, "Count: " + str(self.person_count))
                     get_updater().call_latest(self.MainGUI.text_resutl.setStyleSheet,"background-color: rgb(0, 255, 0);")
-                    get_updater().call_latest(self.MainGUI.label_View.setPixmap, self.img_cv_2_qt(frame))
+                    get_updater().call_latest(self.MainGUI.label_View.setPixmap, self.img_cv_2_qt(self.density_map))
                 else:
                     break
             except Exception as e:
@@ -58,19 +101,38 @@ class Main:
     
     def auto_video(self, path_video):
         url_camera = path_video
+        self.load_config(url_camera)
         self.init_devices(url_camera)
+        cnt =0
         while self.ret and self.start_camera:
             try:
-                time.sleep(0.025)
                 ret, frame = self.camera.read()
+                
                 self.ret = ret
                 if self.ret and self.start_camera:
+                    if len(self.Label_Counting)==0:
+                        if cnt ==0 or cnt % 2*self.fps ==0:
+                            self.density_map, self.person_count = self.predict(frame, self.model)
+                        else:
+                            time.sleep(float(1/self.fps))
+                        cnt +=1
+                    else:
+                        if cnt ==0 or cnt % 2*self.fps ==0:
+                            self.person_count =0
+                            for box in self.Label_Counting:
+                                image = frame[box[1]:box[3], box[0]:box[2]]
+                                _, person_count = self.predict(image, self.model)
+                                self.person_count +=person_count
+                            self.density_map, _ = self.predict(frame, self.model)
+                        else:
+                            time.sleep(float(1/self.fps))
+                        cnt +=1
+                        for box in self.Label_Counting:
+                            cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), (255, 0, 0), 2)
                     get_updater().call_latest(self.MainGUI.label_Image.setPixmap, self.img_cv_2_qt(frame))
-                    get_updater().call_latest(self.MainGUI.text_resutl.setText, "Run")
+                    get_updater().call_latest(self.MainGUI.text_resutl.setText, "Count: " + str(self.person_count))
                     get_updater().call_latest(self.MainGUI.text_resutl.setStyleSheet,"background-color: rgb(0, 255, 0);")
-                    get_updater().call_latest(self.MainGUI.label_View.setPixmap, self.img_cv_2_qt(frame))
-                
-                    
+                    get_updater().call_latest(self.MainGUI.label_View.setPixmap, self.img_cv_2_qt(self.density_map))
                 else:
                     break
             except Exception as e:
@@ -78,11 +140,13 @@ class Main:
         self.close_camera()
     
     def manual_image(self, path_image):
+        self.load_config(path_image)
         image = cv2.imread(path_image)
+        density_map, count = self.predict(image, self.model)
         get_updater().call_latest(self.MainGUI.label_Image.setPixmap, self.img_cv_2_qt(image))
-        get_updater().call_latest(self.MainGUI.text_resutl.setText, "Run")
+        get_updater().call_latest(self.MainGUI.text_resutl.setText, "Count: " + str(count))
         get_updater().call_latest(self.MainGUI.text_resutl.setStyleSheet,"background-color: rgb(0, 255, 0);")
-        get_updater().call_latest(self.MainGUI.label_View.setPixmap, self.img_cv_2_qt(image))
+        get_updater().call_latest(self.MainGUI.label_View.setPixmap, self.img_cv_2_qt(density_map))
         
     def close_camera(self):
         try:
@@ -92,7 +156,7 @@ class Main:
             self.start_camera = False
             self.camera = None
             self.ret = False
-            
+            self.Label_Counting =[]
             time.sleep(1)
             self.MainGUI.label_Image.clear()
             self.MainGUI.label_View.clear()

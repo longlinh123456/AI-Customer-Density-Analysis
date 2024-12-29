@@ -18,3 +18,4 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 MAIN_GUI = resource_path("Main.ui")
+SETUP_GUI = resource_path("Setup.ui")
