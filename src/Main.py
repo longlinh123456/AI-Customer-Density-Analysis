@@ -14,7 +14,7 @@ import csv
 from models import vgg19
 from torchvision import transforms
 from src import config as co
-import ipdb
+from src.utils import visualize_bar_chart_to_image
 
 
 class Main:
@@ -35,7 +35,7 @@ class Main:
         self.fps = 20
         self.density_map = None
         self.person_count = 0
-        self.data_csv = [["STT", "Num Frams", "Count"]]
+        self.data_csv = [["Sample Number", "Frame Number", "Count"]]
         print("Load model done")
 
     def predict(self, image, model):
@@ -46,7 +46,9 @@ class Main:
         with torch.set_grad_enabled(False):
             outputs, _ = model(inp)
         count = torch.sum(outputs).item()
+        print(outputs.size())
         vis_img = outputs[0, 0].cpu().numpy()
+        print(vis_img.shape)
         vis_img = (vis_img - vis_img.min()) / (vis_img.max() - vis_img.min() + 1e-5)
         vis_img = (vis_img * 255).astype(np.uint8)
         vis_img = cv2.applyColorMap(vis_img, cv2.COLORMAP_JET)
@@ -99,15 +101,17 @@ class Main:
         y_value = [sublist[2] for sublist in self.data_csv]
         del x_value[0]
         del y_value[0]
-        plt.plot(x_value, y_value, "bD--")
+
+        # plt.plot(x_value, y_value, "bD--")
         path_img = os.path.splitext(file_extension)[0] + ".jpg"
-        plt.savefig(path_img, format="jpg")
-        self.data_csv = [["STT", "Num Frams", "Count"]]
+        visualize_bar_chart_to_image(x_value, y_value, path_img)
+        # plt.savefig(path_img, format="jpg")
+        self.data_csv = [["Sample Number", "Frame Number", "Count"]]
 
     def auto_camera(self):
         url_camera = co.CAMERA_DEVICE
         self.init_devices(url_camera)
-        self.data_csv = [["STT", "Num Frams", "Count"]]
+        self.data_csv = [["Sample Number", "Frame Number", "Count"]]
         cnt = 0
         while self.ret and self.start_camera:
             try:
@@ -151,7 +155,7 @@ class Main:
         url_camera = path_video
         self.load_config(url_camera)
         self.init_devices(url_camera)
-        self.data_csv = [["STT", "Num Frams", "Count"]]
+        self.data_csv = [["Sample Number", "Frame Number", "Count"]]
         cnt = 0
         while self.ret and self.start_camera:
             try:
@@ -166,7 +170,6 @@ class Main:
                             )
                             data_count = [len(self.data_csv), cnt, self.person_count]
                             self.data_csv.append(data_count)
-                            print(self.data_csv, cnt)
                         else:
                             time.sleep(float(1 / self.fps))
                         cnt += 1
@@ -248,7 +251,7 @@ class Main:
             if self.ret:
                 self.camera.release()
             self.start_camera = False
-            self.data_csv = [["STT", "Num Frams", "Count"]]
+            # self.data_csv = [["Sample Number", "Frame Number", "Count"]]
             self.camera = None
             self.ret = False
             self.Label_Counting = []

@@ -67,7 +67,7 @@
         <bool>false</bool>
        </property>
        <property name="title">
-        <string>CÀI ĐẶT</string>
+        <string>SETTINGS</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -93,7 +93,7 @@
            <bool>true</bool>
           </property>
           <property name="text">
-           <string>1. Chọn ảnh mẫu</string>
+           <string>1. Choose Image</string>
           </property>
          </widget>
         </item>
@@ -121,7 +121,7 @@
                <bool>true</bool>
               </property>
               <property name="text">
-               <string>Mở tệp</string>
+               <string>Open file</string>
               </property>
              </widget>
             </item>
@@ -173,7 +173,7 @@
            <bool>true</bool>
           </property>
           <property name="text">
-           <string>2. Vẽ đối tượng</string>
+           <string>2. Draw regions of interest</string>
           </property>
          </widget>
         </item>
@@ -196,7 +196,7 @@
              <bool>true</bool>
             </property>
             <property name="text">
-             <string>Xác nhận</string>
+             <string>Confirm</string>
             </property>
            </widget>
           </item>
@@ -223,7 +223,7 @@
              <bool>true</bool>
             </property>
             <property name="text">
-             <string>Kiểm tra</string>
+             <string>Check</string>
             </property>
            </widget>
           </item>
@@ -247,7 +247,7 @@
              <bool>true</bool>
             </property>
             <property name="text">
-             <string>Lưu thay đổi</string>
+             <string>Save Changes</string>
             </property>
            </widget>
           </item>
@@ -273,7 +273,7 @@
            <bool>true</bool>
           </property>
           <property name="text">
-           <string>3. Danh sách đã vẽ</string>
+           <string>3. List of regions</string>
           </property>
          </widget>
         </item>
@@ -334,17 +334,17 @@
           </attribute>
           <column>
            <property name="text">
-            <string>STT</string>
+            <string>Number</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Loại hình</string>
+            <string>Object</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Tọa độ</string>
+            <string>Coordinates</string>
            </property>
           </column>
          </widget>
