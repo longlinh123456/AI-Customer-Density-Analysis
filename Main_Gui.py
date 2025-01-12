@@ -15,6 +15,7 @@ import json
 from src.Main import Main
 from qt_thread_updater import get_updater
 from src import config as co, Timer
+from src.SetupGUI import SetupGUI
 
 class MainGUI(QtWidgets.QMainWindow):
     MessageBox_signal = QtCore.pyqtSignal(str, str)
@@ -26,6 +27,7 @@ class MainGUI(QtWidgets.QMainWindow):
         self.pushButton_Image.clicked.connect(self.open_image)
         self.pushButton_Stop.clicked.connect(self.stop)
         self.MessageBox_signal.connect(self.MessageBox_slot)
+        self.action_Config.triggered.connect(self.window_teaching)
         
     def start(self):
         try:
@@ -73,6 +75,12 @@ class MainGUI(QtWidgets.QMainWindow):
     def stop(self):
         self.update_window("stop")
         self.Main.close_camera()
+    
+    def window_teaching(self):
+        self.update_window("stop")
+        self.Main.close_camera()
+        window = SetupGUI(parent=self)
+        window.start()
         
     def update_window(self, typ, name="auto_camera"):
         if typ == "start":

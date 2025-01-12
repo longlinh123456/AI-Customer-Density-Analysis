@@ -1,5 +1,5 @@
 # Mode
 ENV: 'development'
-TESTING: False
+TESTING: True
 
 CAMERA_DEVICE: 0  #0, 1, url: "rtsp:192...."
