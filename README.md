@@ -1,5 +1,6 @@
 # AI Customer Density Analysis
 This project aims to provide insights into customer behavior using AI Crowd Estimation technique.
+A presentation is available on YouTube: https://www.youtube.com/watch?v=3bkF36NrQps
 
 ### Used Frameworks and Libraries: OpenCV, PyQT5
 ### Python version: 3.8
